@@ -6,12 +6,12 @@ DIRECTORY=`dirname $0`
 PROJECT_NAME=$1
 
 #Starting from scratch
-oc new-project ${PROJECT_NAME}
-if [ $? -ne 0 ]
-then
-    echo -e "\033[0;31mPlease delete the '${PROJECT_NAME}' project\033[0m"
-    exit 1
-fi
+#oc new-project ${PROJECT_NAME}
+#if [ $? -ne 0 ]
+#then
+#    echo -e "\033[0;31mPlease delete the '${PROJECT_NAME}' project\033[0m"
+#    exit 1
+#fi
 
 $DIRECTORY/solutions/catalog-spring-boot/solve_deploy.sh ${PROJECT_NAME}
 $DIRECTORY/solutions/inventory-quarkus/solve_deploy.sh ${PROJECT_NAME}
