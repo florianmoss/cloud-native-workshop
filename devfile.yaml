@@ -22,8 +22,6 @@ components:
     env:
       - name: MAVEN_OPTS
         value: '-Xmx2048m -Duser.home=/home/developer'
-      - name: MAVEN_MIRROR_URL
-        value: http://nexus.opentlc-shared.svc:8081/repository/maven-all-public
     endpoints:
        - name: 8080-port
          port: 8080
@@ -43,23 +41,6 @@ components:
         containerPath: /home/developer/.kube
 apiVersion: 1.0.0
 commands:
-  - name: 'OpenShift - Login'
-    actions:
-      - command: >-
-          odo login $(oc whoami --show-server) --username=${CHE_WORKSPACE_NAMESPACE} --password=openshift --insecure-skip-tls-verify
-        type: exec
-        workdir: /projects/workshop
-        component: workshop-tools
-  
-  - name: 'OpenShift - Create Development Project'
-    actions:
-      - command: >-
-          odo project create my-project${CHE_WORKSPACE_NAMESPACE#user}
-        type: exec
-        workdir: /projects/workshop
-        component: workshop-tools
-                  
- 
   - name: 'Inventory - Compile (Dev Mode)'
     actions:
       - command: >-
@@ -81,7 +62,7 @@ commands:
   - name: 'Inventory - Create Component'
     actions:
       - command: >-
-          odo component create java:11 inventory --app coolstore --binary target/inventory-quarkus-1.0.0-SNAPSHOT-runner.jar --s2i --project my-project${CHE_WORKSPACE_NAMESPACE#user}
+          odo component create java:11 inventory --app coolstore --binary target/inventory-quarkus-1.0.0-SNAPSHOT-runner.jar --s2i --project ${CHE_WORKSPACE_NAMESPACE}-dev
         type: exec
         workdir: /projects/workshop/labs/inventory-quarkus
         component: workshop-tools
@@ -126,7 +107,7 @@ commands:
   - name: 'Catalog - Create Component'
     actions:
       - command: >-
-          odo component create java:11 catalog --app coolstore --binary target/catalog-1.0-SNAPSHOT.jar --s2i --project my-project${CHE_WORKSPACE_NAMESPACE#user}
+          odo component create java:11 catalog --app coolstore --binary target/catalog-1.0-SNAPSHOT.jar --s2i --project ${CHE_WORKSPACE_NAMESPACE}-dev
         type: exec
         workdir: /projects/workshop/labs/catalog-spring-boot
         component: workshop-tools
@@ -153,7 +134,7 @@ commands:
   - name: 'Gateway - Create Component'
     actions:
       - command: >-
-          odo component create dotnet gateway --app coolstore --s2i --project my-project${CHE_WORKSPACE_NAMESPACE#user}
+          odo component create dotnet gateway --app coolstore --s2i --project ${CHE_WORKSPACE_NAMESPACE}-dev
         type: exec
         workdir: /projects/workshop/labs/gateway-dotnet
         component: workshop-tools
@@ -198,7 +179,7 @@ commands:
   - name: 'Catalog - Generate Traffic'
     actions:
       - command: >-
-          for i in {1..60}; do if [ $(curl -s -w "%{http_code}" -o /dev/null http://catalog-coolstore.my-project${CHE_WORKSPACE_NAMESPACE#user}.svc:8080/actuator/health) == "200" ]; then MSG="\\033[0;32mThe request to Catalog Service has succeeded\\033[0m"; else MSG="\\033[0;31mERROR - The request to Catalog Service has failed\\033[0m"; fi;echo -e $MSG;sleep 2s; done
+          for i in {1..60}; do if [ $(curl -s -w "%{http_code}" -o /dev/null http://catalog-coolstore.${CHE_WORKSPACE_NAMESPACE}-dev.svc:8080/actuator/health) == "200" ]; then MSG="\\033[0;32mThe request to Catalog Service has succeeded\\033[0m"; else MSG="\\033[0;31mERROR - The request to Catalog Service has failed\\033[0m"; fi;echo -e $MSG;sleep 2s; done
         type: exec
         workdir: /projects/workshop/labs/catalog-spring-boot
         component: workshop-tools
@@ -207,7 +188,7 @@ commands:
   - name: 'Catalog - Add PodAffinity'
     actions:
       - command: >-
-          oc patch dc/catalog-coolstore -n my-project${CHE_WORKSPACE_NAMESPACE#user} --patch '{"spec": {"template": {"spec": {"affinity": {"podAffinity": {"requiredDuringSchedulingIgnoredDuringExecution": [{"labelSelector": { "matchExpressions": [{"key" : "deploymentconfig", "operator" : "In", "values": ["catalog-coolstore"]}]}, "topologyKey" : "kubernetes.io/hostname"}]}}}}}}'
+          oc patch dc/catalog-coolstore -n ${CHE_WORKSPACE_NAMESPACE}-dev --patch '{"spec": {"template": {"spec": {"affinity": {"podAffinity": {"requiredDuringSchedulingIgnoredDuringExecution": [{"labelSelector": { "matchExpressions": [{"key" : "deploymentconfig", "operator" : "In", "values": ["catalog-coolstore"]}]}, "topologyKey" : "kubernetes.io/hostname"}]}}}}}}'
         type: exec
         workdir: /projects/workshop/labs/catalog-spring-boot
         component: workshop-tools
@@ -215,7 +196,7 @@ commands:
   - name: 'Probes - Configure Gateway & Web'
     actions:
       - command: >-
-          oc project my-project${CHE_WORKSPACE_NAMESPACE#user}; oc set probe dc/gateway-coolstore  --liveness --readiness --period-seconds=5 --get-url=http://:8080/health;oc set probe deployment/web-coolstore  --liveness --readiness --period-seconds=5 --get-url=http://:8080/;echo "Health Probes Done"
+          oc project ${CHE_WORKSPACE_NAMESPACE}-dev; oc set probe dc/gateway-coolstore  --liveness --readiness --period-seconds=5 --get-url=http://:8080/health;oc set probe deployment/web-coolstore  --liveness --readiness --period-seconds=5 --get-url=http://:8080/;echo "Health Probes Done"
         type: exec
         workdir: /projects/workshop
         component: workshop-tools
@@ -224,83 +205,24 @@ commands:
   - name: 'Inventory - Mount ConfigMap'
     actions:
       - command: >-
-          oc set volume dc/inventory-coolstore --add --configmap-name=inventory --mount-path=/deployments/config -n my-project${CHE_WORKSPACE_NAMESPACE#user}
+          oc set volume dc/inventory-coolstore --add --configmap-name=inventory --mount-path=/deployments/config -n ${CHE_WORKSPACE_NAMESPACE}-dev
         type: exec
         workdir: /projects/workshop/labs/inventory-quarkus
         component: workshop-tools
                 
  
-  - name: 'Gateway - Generate Traffic'
-    actions:
-      - command: >-
-          ./gateway_generate_traffic.sh cn-project${CHE_WORKSPACE_NAMESPACE#user}
-        type: exec
-        workdir: /projects/workshop/.tasks
-        component: workshop-tools
-
   - name: 'Inner Loop - Deploy Coolstore'
     actions:
       - command: >-
-          ./inner_loop_deploy_coolstore.sh my-project${CHE_WORKSPACE_NAMESPACE#user}
+          ./inner_loop_deploy_coolstore.sh ${CHE_WORKSPACE_NAMESPACE}-dev
         type: exec
         workdir: /projects/workshop/.tasks
         component: workshop-tools
-  
-  - name: 'Inventory - Commit'
-    actions:
-      - command: >-
-          git init; git remote add origin http://gitea-server.gitea.svc:3000/${CHE_WORKSPACE_NAMESPACE}/inventory-quarkus.git; git add *; git commit -m "Initial"; git push http://${CHE_WORKSPACE_NAMESPACE}:openshift@gitea-server.gitea.svc:3000/${CHE_WORKSPACE_NAMESPACE}/inventory-quarkus.git
-        type: exec
-        workdir: /projects/workshop/labs/inventory-quarkus
-        component: workshop-tools
-                  
- 
-  - name: 'GitOps - Export Coolstore'
-    actions:
-      - command: >-
-          ./gitops_export_coolstore.sh my-project${CHE_WORKSPACE_NAMESPACE#user} cn-project${CHE_WORKSPACE_NAMESPACE#user}
-        type: exec
-        workdir: /projects/workshop/.tasks
-        component: workshop-tools
-                
- 
-  - name: 'Pipeline - Deploy Coolstore'
-    actions:
-      - command: >-
-          oc project cn-project${CHE_WORKSPACE_NAMESPACE#user} && ./pipeline_deploy_coolstore.sh cn-project${CHE_WORKSPACE_NAMESPACE#user}
-        type: exec
-        workdir: /projects/workshop/.tasks
-        component: workshop-tools
-
-  - name: 'GitOps - Commit Inventory'
-    actions:
-      - command: >-
-          git init; git remote add origin http://gitea-server.gitea.svc:3000/${CHE_WORKSPACE_NAMESPACE}/inventory-gitops.git 2> /dev/null; git add *; git commit -m "Initial Inventory GitOps"; git push http://${CHE_WORKSPACE_NAMESPACE}:openshift@gitea-server.gitea.svc:3000/${CHE_WORKSPACE_NAMESPACE}/inventory-gitops.git
-        type: exec
-        workdir: /projects/workshop/labs/gitops/inventory-coolstore
-        component: workshop-tools
-  
-  - name: 'GitOps - Commit & Configure Coolstore'
-    actions:
-      - command: >-
-          ./gitops_commit_configure_coolstore.sh ${CHE_WORKSPACE_NAMESPACE#user}
-        type: exec
-        workdir: /projects/workshop/.tasks
-        component: workshop-tools
-                  
- 
-  - name: 'Service Mesh - Deploy Catalog and Gateway'
-    actions:
-      - command: >-
-          oc patch dc/catalog-coolstore --patch '{"spec": {"template": {"metadata": {"annotations": {"sidecar.istio.io/inject": "true"}}}}}' -n cn-project${CHE_WORKSPACE_NAMESPACE#user} && oc rollout latest dc/catalog-coolstore -n cn-project${CHE_WORKSPACE_NAMESPACE#user} && oc patch dc/gateway-coolstore --patch '{"spec": {"template": {"metadata": {"annotations": {"sidecar.istio.io/inject": "true"}}}}}' -n cn-project${CHE_WORKSPACE_NAMESPACE#user} && oc rollout latest dc/gateway-coolstore -n cn-project${CHE_WORKSPACE_NAMESPACE#user}
-        type: exec
-        component: workshop-tools
-                
- 
+   
   - name: 'OpenShift - Cleanup'
     actions:
       - command: >-
-           git checkout .; git clean -fd; git clean -f; oc delete project my-project${CHE_WORKSPACE_NAMESPACE#user}; oc delete deployment,deploymentconfig,buildconfig,imagestream,route,secret,configmap,pvc,service,pipeline,pipelinerun --all --namespace cn-project${CHE_WORKSPACE_NAMESPACE#user}
+           git checkout .; git clean -fd; git clean -f; oc delete deployment,deploymentconfig,buildconfig,imagestream,route,secret,configmap,pvc,service,pipeline,pipelinerun --all --namespace ${CHE_WORKSPACE_NAMESPACE}-dev
         type: exec
         workdir: /projects/workshop
         component: workshop-tools
