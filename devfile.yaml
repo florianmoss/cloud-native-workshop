@@ -42,6 +42,12 @@ components:
 apiVersion: 1.0.0
 commands:
   - name: Launch Workshop Lab Guide
+    actions:
+      - command: >-
+          sleep 1
+        type: exec
+        workdir: /projects/workshop/labs/inventory-quarkus
+        component: workshop-tools
     previewUrl:
       port: 443
       path: >-
