@@ -44,7 +44,7 @@ commands:
   - name: Launch Workshop Lab Guide
     previewUrl:
       port: 443
-      path: 'redhat-scholars.github.io/inner-loop-guide/inner-loop/5.1/index.html?WORKSHOP_GIT_REPO=https://github.com/alexgroom/cloud-native-workshop.git&WORKSHOP_GIT_REF=5.1&PROJECT=${env:CHE_WORKSPACE_NAMESPACE}-dev
+      path: 'redhat-scholars.github.io/inner-loop-guide/inner-loop/5.1/index.html?WORKSHOP_GIT_REPO=https://github.com/alexgroom/cloud-native-workshop.git&WORKSHOP_GIT_REF=5.1&PROJECT=${env:CHE_WORKSPACE_NAMESPACE}-dev'
   
   - name: 'Inventory - Compile (Dev Mode)'
     actions:
