@@ -234,7 +234,7 @@ commands:
   - name: 'OpenShift - Cleanup'
     actions:
       - command: >-
-           git checkout .; git clean -fd; git clean -f; oc delete deployment,deploymentconfig,buildconfig,imagestream,route,secret,configmap,pvc,service,pipeline,pipelinerun --all --namespace ${CHE_WORKSPACE_NAMESPACE}-dev
+           git checkout .; git clean -fd; git clean -f; oc delete deployment,deploymentconfig,buildconfig,imagestream,route,secret,configmap,pvc,service --selector=app=coolstore --namespace ${CHE_WORKSPACE_NAMESPACE}-dev
         type: exec
         workdir: /projects/workshop
         component: workshop-tools
