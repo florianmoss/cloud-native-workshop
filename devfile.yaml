@@ -17,7 +17,7 @@ components:
   - type: dockerimage
     image: 'quay.io/mcouliba/workshop-tools:5.0'
     alias: workshop-tools
-    memoryLimit: "1Gi"
+    memoryLimit: "800Mi"
     mountSources: true
     env:
       - name: MAVEN_OPTS
