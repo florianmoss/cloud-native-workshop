@@ -5,7 +5,7 @@ attributes:
 projects:
   - name: workshop
     source:
-      location: 'https://github.com/alexgroom/cloud-native-workshop.git'
+      location: 'https://github.com/florianmoss/cloud-native-workshop.git'
       type: github
       branch: '5.1'
 components:
